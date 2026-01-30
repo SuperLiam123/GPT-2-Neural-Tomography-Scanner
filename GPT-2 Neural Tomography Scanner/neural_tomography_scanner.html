@@ -1,0 +1,1249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GPT-2 Neural Tomography Scanner</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: #1a1a1a;
+            color: #e0e0e0;
+            overflow: hidden;
+            height: 100vh;
+        }
+
+        /* Header */
+        .header {
+            background: linear-gradient(180deg, #2a2a2a 0%, #1f1f1f 100%);
+            padding: 10px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #333;
+            height: 50px;
+        }
+
+        .header h1 {
+            font-size: 18px;
+            font-weight: 500;
+            color: #4a9eff;
+        }
+
+        .header .subtitle {
+            font-size: 11px;
+            color: #888;
+            margin-left: 15px;
+        }
+
+        /* Toolbar */
+        .toolbar {
+            background: #252525;
+            padding: 8px 15px;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            border-bottom: 1px solid #333;
+            flex-wrap: wrap;
+        }
+
+        .toolbar-group {
+            display: flex;
+            gap: 5px;
+            padding-right: 15px;
+            border-right: 1px solid #444;
+        }
+
+        .toolbar-group:last-child {
+            border-right: none;
+        }
+
+        .btn {
+            background: #3a3a3a;
+            border: 1px solid #555;
+            color: #ddd;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.2s;
+        }
+
+        .btn:hover {
+            background: #4a4a4a;
+            border-color: #666;
+        }
+
+        .btn.active {
+            background: #4a9eff;
+            border-color: #4a9eff;
+            color: white;
+        }
+
+        /* Main Container */
+        .main-container {
+            display: flex;
+            height: calc(100vh - 110px);
+        }
+
+        /* Slice Views Panel */
+        .slice-panel {
+            width: 350px;
+            background: #1f1f1f;
+            display: flex;
+            flex-direction: column;
+            border-right: 1px solid #333;
+        }
+
+        .slice-view {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            border-bottom: 1px solid #333;
+            min-height: 0;
+        }
+
+        .slice-view:last-child {
+            border-bottom: none;
+        }
+
+        .slice-header {
+            background: #2a2a2a;
+            padding: 5px 10px;
+            font-size: 11px;
+            color: #4a9eff;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .slice-canvas-container {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #000;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .slice-canvas {
+            max-width: 100%;
+            max-height: 100%;
+            image-rendering: pixelated;
+        }
+
+        /* 3D View Panel */
+        .view-3d-panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: #1a1a1a;
+        }
+
+        .view-3d-header {
+            background: #2a2a2a;
+            padding: 8px 15px;
+            font-size: 12px;
+            color: #4a9eff;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        #canvas3d {
+            flex: 1;
+            width: 100%;
+        }
+
+        /* Right Panel */
+        .right-panel {
+            width: 280px;
+            background: #1f1f1f;
+            border-left: 1px solid #333;
+            overflow-y: auto;
+        }
+
+        .panel-section {
+            border-bottom: 1px solid #333;
+        }
+
+        .panel-header {
+            background: #2a2a2a;
+            padding: 10px 15px;
+            font-size: 12px;
+            font-weight: 500;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .panel-header:hover {
+            background: #333;
+        }
+
+        .panel-content {
+            padding: 15px;
+        }
+
+        .control-row {
+            margin-bottom: 12px;
+        }
+
+        .control-label {
+            font-size: 11px;
+            color: #888;
+            margin-bottom: 5px;
+            display: block;
+        }
+
+        .slider-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        input[type="range"] {
+            flex: 1;
+            -webkit-appearance: none;
+            background: #333;
+            height: 4px;
+            border-radius: 2px;
+            outline: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 14px;
+            height: 14px;
+            background: #4a9eff;
+            border-radius: 50%;
+            cursor: pointer;
+        }
+
+        .slider-value {
+            font-size: 11px;
+            color: #4a9eff;
+            min-width: 40px;
+            text-align: right;
+            font-family: 'Consolas', monospace;
+        }
+
+        select {
+            width: 100%;
+            background: #333;
+            border: 1px solid #444;
+            color: #ddd;
+            padding: 6px 10px;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+
+        /* Transfer Function Editor */
+        .tf-editor {
+            height: 80px;
+            background: #000;
+            border: 1px solid #333;
+            border-radius: 4px;
+            position: relative;
+            margin-top: 10px;
+        }
+
+        /* Status Bar */
+        .status-bar {
+            background: #252525;
+            padding: 6px 15px;
+            font-size: 11px;
+            color: #888;
+            display: flex;
+            justify-content: space-between;
+            border-top: 1px solid #333;
+            font-family: 'Consolas', monospace;
+        }
+
+        .status-item {
+            display: flex;
+            gap: 5px;
+        }
+
+        .status-label {
+            color: #666;
+        }
+
+        .status-value {
+            color: #4a9eff;
+        }
+
+        /* Checkbox */
+        .checkbox-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+
+        .checkbox-row input[type="checkbox"] {
+            width: 14px;
+            height: 14px;
+            accent-color: #4a9eff;
+        }
+
+        .checkbox-row label {
+            font-size: 12px;
+            cursor: pointer;
+        }
+
+        /* Info Box */
+        .info-box {
+            background: #2a2a2a;
+            border-radius: 4px;
+            padding: 10px;
+            font-size: 11px;
+            line-height: 1.6;
+        }
+
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .info-label {
+            color: #888;
+        }
+
+        .info-value {
+            color: #ddd;
+            font-family: 'Consolas', monospace;
+        }
+
+        /* Loading Overlay */
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.9);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .loading-spinner {
+            width: 60px;
+            height: 60px;
+            border: 3px solid #333;
+            border-top-color: #4a9eff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .loading-text {
+            margin-top: 20px;
+            font-size: 14px;
+            color: #888;
+        }
+
+        .loading-progress {
+            margin-top: 10px;
+            font-size: 12px;
+            color: #4a9eff;
+        }
+    </style>
+</head>
+<body>
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-spinner"></div>
+        <div class="loading-text">Initializing Neural Tomography Scanner...</div>
+        <div class="loading-progress" id="loadingProgress">Generating volume data...</div>
+    </div>
+
+    <!-- Header -->
+    <div class="header">
+        <div style="display: flex; align-items: center;">
+            <h1>GPT-2 Neural Tomography Scanner</h1>
+            <span class="subtitle">"Scanning the mind of AI"</span>
+        </div>
+        <div style="font-size: 11px; color: #666;">
+            Model: GPT-2 Small | Parameters: 124,439,808
+        </div>
+    </div>
+
+    <!-- Toolbar -->
+    <div class="toolbar">
+        <div class="toolbar-group">
+            <button class="btn active" data-preset="full" onclick="setWindowPreset('full')">Full Range</button>
+            <button class="btn" data-preset="soft" onclick="setWindowPreset('soft')">Soft Tissue</button>
+            <button class="btn" data-preset="high" onclick="setWindowPreset('high')">High Density</button>
+            <button class="btn" data-preset="fine" onclick="setWindowPreset('fine')">Fine Structure</button>
+        </div>
+        <div class="toolbar-group">
+            <button class="btn active" data-mode="volume" onclick="setRenderMode('volume')">Volume</button>
+            <button class="btn" data-mode="mip" onclick="setRenderMode('mip')">MIP</button>
+            <button class="btn" data-mode="slice" onclick="setRenderMode('slice')">Slice Only</button>
+        </div>
+        <div class="toolbar-group">
+            <button class="btn" onclick="resetView()">Reset View</button>
+            <button class="btn" onclick="takeScreenshot()">Screenshot</button>
+            <button class="btn" id="autoRotateBtn" onclick="toggleAutoRotate()">Auto Rotate</button>
+        </div>
+    </div>
+
+    <!-- Main Container -->
+    <div class="main-container">
+        <!-- Slice Views -->
+        <div class="slice-panel">
+            <!-- Axial View -->
+            <div class="slice-view">
+                <div class="slice-header">
+                    <span>Axial (Z) - Model Depth</span>
+                    <span id="axialSliceNum">Slice: 64/128</span>
+                </div>
+                <div class="slice-canvas-container" id="axialContainer">
+                    <canvas class="slice-canvas" id="axialCanvas" width="128" height="128"></canvas>
+                </div>
+            </div>
+
+            <!-- Coronal View -->
+            <div class="slice-view">
+                <div class="slice-header">
+                    <span>Coronal (Y) - Output Dim</span>
+                    <span id="coronalSliceNum">Slice: 64/128</span>
+                </div>
+                <div class="slice-canvas-container" id="coronalContainer">
+                    <canvas class="slice-canvas" id="coronalCanvas" width="128" height="128"></canvas>
+                </div>
+            </div>
+
+            <!-- Sagittal View -->
+            <div class="slice-view">
+                <div class="slice-header">
+                    <span>Sagittal (X) - Input Dim</span>
+                    <span id="sagittalSliceNum">Slice: 64/128</span>
+                </div>
+                <div class="slice-canvas-container" id="sagittalContainer">
+                    <canvas class="slice-canvas" id="sagittalCanvas" width="128" height="128"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- 3D View -->
+        <div class="view-3d-panel">
+            <div class="view-3d-header">
+                <span>3D Volume Rendering</span>
+                <span id="fpsCounter">FPS: --</span>
+            </div>
+            <canvas id="canvas3d"></canvas>
+        </div>
+
+        <!-- Right Panel -->
+        <div class="right-panel">
+            <!-- Slice Controls -->
+            <div class="panel-section">
+                <div class="panel-header">
+                    <span>▼ Slice Navigation</span>
+                </div>
+                <div class="panel-content">
+                    <div class="control-row">
+                        <label class="control-label">Axial (Z) - Model Depth</label>
+                        <div class="slider-container">
+                            <input type="range" id="axialSlider" min="0" max="127" value="64" oninput="updateSlice('axial', this.value)">
+                            <span class="slider-value" id="axialValue">64</span>
+                        </div>
+                    </div>
+                    <div class="control-row">
+                        <label class="control-label">Coronal (Y) - Output Dimension</label>
+                        <div class="slider-container">
+                            <input type="range" id="coronalSlider" min="0" max="127" value="64" oninput="updateSlice('coronal', this.value)">
+                            <span class="slider-value" id="coronalValue">64</span>
+                        </div>
+                    </div>
+                    <div class="control-row">
+                        <label class="control-label">Sagittal (X) - Input Dimension</label>
+                        <div class="slider-container">
+                            <input type="range" id="sagittalSlider" min="0" max="127" value="64" oninput="updateSlice('sagittal', this.value)">
+                            <span class="slider-value" id="sagittalValue">64</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Window Settings -->
+            <div class="panel-section">
+                <div class="panel-header">
+                    <span>▼ Window Settings</span>
+                </div>
+                <div class="panel-content">
+                    <div class="control-row">
+                        <label class="control-label">Window Center (Level)</label>
+                        <div class="slider-container">
+                            <input type="range" id="windowCenter" min="-1000" max="2000" value="0" oninput="updateWindow()">
+                            <span class="slider-value" id="windowCenterValue">0</span>
+                        </div>
+                    </div>
+                    <div class="control-row">
+                        <label class="control-label">Window Width</label>
+                        <div class="slider-container">
+                            <input type="range" id="windowWidth" min="10" max="3000" value="2000" oninput="updateWindow()">
+                            <span class="slider-value" id="windowWidthValue">2000</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Transfer Function -->
+            <div class="panel-section">
+                <div class="panel-header">
+                    <span>▼ Transfer Function</span>
+                </div>
+                <div class="panel-content">
+                    <div class="control-row">
+                        <label class="control-label">Preset</label>
+                        <select id="tfPreset" onchange="setTransferFunction(this.value)">
+                            <option value="mri_t1">MRI T1</option>
+                            <option value="mri_t2">MRI T2</option>
+                            <option value="ct_bone">CT Bone</option>
+                            <option value="rainbow">Rainbow</option>
+                            <option value="heatmap">Heatmap</option>
+                        </select>
+                    </div>
+                    <div class="tf-editor">
+                        <canvas id="tfCanvas" width="248" height="78"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Display Settings -->
+            <div class="panel-section">
+                <div class="panel-header">
+                    <span>▼ Display Settings</span>
+                </div>
+                <div class="panel-content">
+                    <div class="checkbox-row">
+                        <input type="checkbox" id="showSlicePlanes" checked onchange="toggleSlicePlanes()">
+                        <label for="showSlicePlanes">Show Slice Planes in 3D</label>
+                    </div>
+                    <div class="checkbox-row">
+                        <input type="checkbox" id="showAxes" onchange="toggleAxes()">
+                        <label for="showAxes">Show Coordinate Axes</label>
+                    </div>
+                    <div class="control-row">
+                        <label class="control-label">3D Opacity</label>
+                        <div class="slider-container">
+                            <input type="range" id="opacity3d" min="0" max="100" value="80" oninput="update3DOpacity()">
+                            <span class="slider-value" id="opacityValue">80%</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Model Info -->
+            <div class="panel-section">
+                <div class="panel-header">
+                    <span>▼ Model Information</span>
+                </div>
+                <div class="panel-content">
+                    <div class="info-box">
+                        <div class="info-row">
+                            <span class="info-label">Model:</span>
+                            <span class="info-value">GPT-2 Small</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">Parameters:</span>
+                            <span class="info-value">124,439,808</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">Volume Size:</span>
+                            <span class="info-value">128×128×128</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">Layers:</span>
+                            <span class="info-value">12 Transformer</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Status Bar -->
+    <div class="status-bar">
+        <div class="status-item">
+            <span class="status-label">Position:</span>
+            <span class="status-value" id="positionStatus">X=64, Y=64, Z=64</span>
+        </div>
+        <div class="status-item">
+            <span class="status-label">Density:</span>
+            <span class="status-value" id="densityStatus">-- HU</span>
+        </div>
+        <div class="status-item">
+            <span class="status-label">Layer:</span>
+            <span class="status-value" id="layerStatus">Layer 6 (Attention)</span>
+        </div>
+    </div>
+
+    <!-- Three.js via ES Module -->
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+            "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+        }
+    }
+    </script>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+        // Global state
+        let volumeData = null;
+        const volumeSize = 128;
+        let slicePositions = { axial: 64, coronal: 64, sagittal: 64 };
+        let windowSettings = { center: 0, width: 2000 };
+        let renderMode = 'volume';
+        let autoRotate = false;
+
+        // Three.js objects
+        let scene, camera, renderer, controls;
+        let volumeMesh, slicePlanes = [];
+        let axesHelper;
+
+        // Window presets
+        const windowPresets = {
+            full: { center: 0, width: 2000 },
+            soft: { center: 40, width: 400 },
+            high: { center: 500, width: 1500 },
+            low: { center: -200, width: 600 },
+            fine: { center: 0, width: 100 }
+        };
+
+        // Transfer function presets
+        const tfPresets = {
+            mri_t1: [
+                { pos: 0, r: 0, g: 0, b: 0, a: 0 },
+                { pos: 0.2, r: 0, g: 0, b: 50, a: 0.1 },
+                { pos: 0.4, r: 20, g: 20, b: 30, a: 0.05 },
+                { pos: 0.5, r: 80, g: 60, b: 60, a: 0.3 },
+                { pos: 0.7, r: 150, g: 100, b: 80, a: 0.5 },
+                { pos: 0.85, r: 200, g: 180, b: 160, a: 0.7 },
+                { pos: 1, r: 255, g: 255, b: 240, a: 0.9 }
+            ],
+            mri_t2: [
+                { pos: 0, r: 0, g: 0, b: 0, a: 0 },
+                { pos: 0.3, r: 0, g: 30, b: 80, a: 0.2 },
+                { pos: 0.5, r: 50, g: 100, b: 150, a: 0.4 },
+                { pos: 0.7, r: 100, g: 180, b: 220, a: 0.6 },
+                { pos: 1, r: 200, g: 240, b: 255, a: 0.9 }
+            ],
+            ct_bone: [
+                { pos: 0, r: 0, g: 0, b: 0, a: 0 },
+                { pos: 0.5, r: 0, g: 0, b: 0, a: 0 },
+                { pos: 0.6, r: 150, g: 130, b: 100, a: 0.3 },
+                { pos: 0.8, r: 220, g: 200, b: 180, a: 0.7 },
+                { pos: 1, r: 255, g: 255, b: 255, a: 1 }
+            ],
+            rainbow: [
+                { pos: 0, r: 0, g: 0, b: 128, a: 0.3 },
+                { pos: 0.25, r: 0, g: 128, b: 255, a: 0.5 },
+                { pos: 0.5, r: 0, g: 255, b: 0, a: 0.6 },
+                { pos: 0.75, r: 255, g: 255, b: 0, a: 0.7 },
+                { pos: 1, r: 255, g: 0, b: 0, a: 0.9 }
+            ],
+            heatmap: [
+                { pos: 0, r: 0, g: 0, b: 128, a: 0.2 },
+                { pos: 0.25, r: 0, g: 100, b: 200, a: 0.4 },
+                { pos: 0.5, r: 255, g: 255, b: 255, a: 0.5 },
+                { pos: 0.75, r: 255, g: 150, b: 0, a: 0.7 },
+                { pos: 1, r: 200, g: 0, b: 0, a: 0.9 }
+            ]
+        };
+
+        let currentTF = tfPresets.mri_t1;
+
+        // Seeded random number generator
+        let seed = 12345;
+        function seededRandom() {
+            seed = (seed * 1103515245 + 12345) & 0x7fffffff;
+            return seed / 0x7fffffff;
+        }
+
+        function gaussianRandom() {
+            let u = 0, v = 0;
+            while (u === 0) u = seededRandom();
+            while (v === 0) v = seededRandom();
+            return Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0 * Math.PI * v);
+        }
+
+        // Generate synthetic volume data
+        function generateSyntheticVolume() {
+            const size = volumeSize;
+            const data = new Float32Array(size * size * size);
+            seed = 12345;
+            
+            for (let z = 0; z < size; z++) {
+                const layerProgress = z / size;
+                
+                for (let y = 0; y < size; y++) {
+                    for (let x = 0; x < size; x++) {
+                        const idx = z * size * size + y * size + x;
+                        let value = gaussianRandom() * 0.1;
+                        
+                        if (z < size * 0.1) {
+                            value += Math.sin(x * 0.15 + y * 0.1) * 0.4;
+                            value += Math.cos(x * 0.08 - y * 0.12) * 0.3;
+                        } else if (z < size * 0.9) {
+                            const relativeZ = (z - size * 0.1) / (size * 0.8);
+                            const layerNum = Math.floor(relativeZ * 12);
+                            const attentionFreq = 0.1 + layerNum * 0.02;
+                            value += Math.sin(x * attentionFreq) * Math.sin(y * attentionFreq) * 0.25;
+                            
+                            const headSize = size / 8;
+                            const headIdx = Math.floor(x / headSize);
+                            value += Math.sin((x % headSize) * 0.3 + headIdx * 0.5) * 0.15;
+                            
+                            const layerZ = (z - size * 0.1) % (size * 0.8 / 12);
+                            const layerZNorm = layerZ / (size * 0.8 / 12);
+                            if (layerZNorm > 0.5) {
+                                value += Math.sin(x * 0.2) * Math.cos(y * 0.25) * 0.3;
+                                value += gaussianRandom() * 0.1;
+                            }
+                            if (layerZNorm < 0.05 || (layerZNorm > 0.45 && layerZNorm < 0.55)) {
+                                value *= 0.5;
+                                value += 1.0;
+                            }
+                        } else {
+                            value += Math.sin(x * 0.12) * Math.cos(y * 0.15) * 0.35;
+                            value += gaussianRandom() * 0.15;
+                        }
+                        
+                        if (seededRandom() < 0.002) {
+                            value += (seededRandom() - 0.5) * 3;
+                        }
+                        
+                        value = value * 500;
+                        value = Math.max(-1000, Math.min(2000, value));
+                        data[idx] = value;
+                    }
+                }
+            }
+            return data;
+        }
+
+        function updateLoadingProgress(text) {
+            document.getElementById('loadingProgress').textContent = text;
+        }
+
+        // Initialize application
+        async function init() {
+            try {
+                updateLoadingProgress('Generating GPT-2 parameter volume...');
+                await new Promise(r => setTimeout(r, 100));
+                
+                volumeData = generateSyntheticVolume();
+                
+                updateLoadingProgress('Initializing 3D renderer...');
+                await new Promise(r => setTimeout(r, 100));
+                
+                init3D();
+                
+                updateLoadingProgress('Rendering slices...');
+                await new Promise(r => setTimeout(r, 100));
+                
+                renderAllSlices();
+                
+                updateLoadingProgress('Drawing transfer function...');
+                drawTransferFunction();
+                
+                setupEventListeners();
+                
+                document.getElementById('loadingOverlay').style.display = 'none';
+                
+                animate();
+            } catch (e) {
+                console.error('Initialization error:', e);
+                document.getElementById('loadingProgress').textContent = 'Error: ' + e.message;
+            }
+        }
+
+        function init3D() {
+            const container = document.getElementById('canvas3d');
+            const width = container.clientWidth;
+            const height = container.clientHeight;
+
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x1a1a1a);
+
+            camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 1000);
+            camera.position.set(3, 3, 3);
+
+            renderer = new THREE.WebGLRenderer({ canvas: container, antialias: true });
+            renderer.setSize(width, height);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
+            controls = new OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+
+            createVolumeVisualization();
+            createSlicePlanes();
+
+            axesHelper = new THREE.AxesHelper(1.5);
+            axesHelper.visible = false;
+            scene.add(axesHelper);
+
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+            scene.add(ambientLight);
+
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.5);
+            directionalLight.position.set(5, 5, 5);
+            scene.add(directionalLight);
+
+            window.addEventListener('resize', onWindowResize);
+        }
+
+        function createVolumeVisualization() {
+            const positions = [];
+            const colors = [];
+            const sampleRate = 4;
+            const scale = 2 / volumeSize;
+
+            for (let z = 0; z < volumeSize; z += sampleRate) {
+                for (let y = 0; y < volumeSize; y += sampleRate) {
+                    for (let x = 0; x < volumeSize; x += sampleRate) {
+                        const idx = z * volumeSize * volumeSize + y * volumeSize + x;
+                        const value = volumeData[idx];
+                        const normalizedValue = (value + 1000) / 3000;
+                        
+                        if (normalizedValue < 0.35) continue;
+
+                        positions.push(
+                            (x - volumeSize / 2) * scale,
+                            (y - volumeSize / 2) * scale,
+                            (z - volumeSize / 2) * scale
+                        );
+
+                        const color = getColorFromTF(normalizedValue);
+                        colors.push(color.r / 255, color.g / 255, color.b / 255);
+                    }
+                }
+            }
+
+            const geometry = new THREE.BufferGeometry();
+            geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+            geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+
+            const material = new THREE.PointsMaterial({
+                size: 0.03,
+                vertexColors: true,
+                transparent: true,
+                opacity: 0.8,
+                sizeAttenuation: true
+            });
+
+            if (volumeMesh) {
+                scene.remove(volumeMesh);
+                volumeMesh.geometry.dispose();
+                volumeMesh.material.dispose();
+            }
+
+            volumeMesh = new THREE.Points(geometry, material);
+            scene.add(volumeMesh);
+
+            const boxGeometry = new THREE.BoxGeometry(2, 2, 2);
+            const boxEdges = new THREE.EdgesGeometry(boxGeometry);
+            const boxMaterial = new THREE.LineBasicMaterial({ color: 0x4a9eff, transparent: true, opacity: 0.3 });
+            const boxLine = new THREE.LineSegments(boxEdges, boxMaterial);
+            scene.add(boxLine);
+        }
+
+        function getColorFromTF(normalizedValue) {
+            let lower = currentTF[0];
+            let upper = currentTF[currentTF.length - 1];
+
+            for (let i = 0; i < currentTF.length - 1; i++) {
+                if (normalizedValue >= currentTF[i].pos && normalizedValue <= currentTF[i + 1].pos) {
+                    lower = currentTF[i];
+                    upper = currentTF[i + 1];
+                    break;
+                }
+            }
+
+            const t = (normalizedValue - lower.pos) / (upper.pos - lower.pos || 1);
+            return {
+                r: Math.round(lower.r + (upper.r - lower.r) * t),
+                g: Math.round(lower.g + (upper.g - lower.g) * t),
+                b: Math.round(lower.b + (upper.b - lower.b) * t),
+                a: lower.a + (upper.a - lower.a) * t
+            };
+        }
+
+        function createSlicePlanes() {
+            const scale = 2 / volumeSize;
+            const planeSize = 2;
+
+            slicePlanes.forEach(plane => scene.remove(plane));
+            slicePlanes = [];
+
+            const axialGeom = new THREE.PlaneGeometry(planeSize, planeSize);
+            const axialMat = new THREE.MeshBasicMaterial({ 
+                color: 0x4a9eff, transparent: true, opacity: 0.2, side: THREE.DoubleSide
+            });
+            const axialPlane = new THREE.Mesh(axialGeom, axialMat);
+            axialPlane.position.z = (slicePositions.axial - volumeSize / 2) * scale;
+            slicePlanes.push(axialPlane);
+            scene.add(axialPlane);
+
+            const coronalGeom = new THREE.PlaneGeometry(planeSize, planeSize);
+            const coronalMat = new THREE.MeshBasicMaterial({ 
+                color: 0x4aff9e, transparent: true, opacity: 0.2, side: THREE.DoubleSide
+            });
+            const coronalPlane = new THREE.Mesh(coronalGeom, coronalMat);
+            coronalPlane.rotation.x = Math.PI / 2;
+            coronalPlane.position.y = (slicePositions.coronal - volumeSize / 2) * scale;
+            slicePlanes.push(coronalPlane);
+            scene.add(coronalPlane);
+
+            const sagittalGeom = new THREE.PlaneGeometry(planeSize, planeSize);
+            const sagittalMat = new THREE.MeshBasicMaterial({ 
+                color: 0xff9e4a, transparent: true, opacity: 0.2, side: THREE.DoubleSide
+            });
+            const sagittalPlane = new THREE.Mesh(sagittalGeom, sagittalMat);
+            sagittalPlane.rotation.y = Math.PI / 2;
+            sagittalPlane.position.x = (slicePositions.sagittal - volumeSize / 2) * scale;
+            slicePlanes.push(sagittalPlane);
+            scene.add(sagittalPlane);
+        }
+
+        function updateSlicePlanes() {
+            const scale = 2 / volumeSize;
+            if (slicePlanes.length >= 3) {
+                slicePlanes[0].position.z = (slicePositions.axial - volumeSize / 2) * scale;
+                slicePlanes[1].position.y = (slicePositions.coronal - volumeSize / 2) * scale;
+                slicePlanes[2].position.x = (slicePositions.sagittal - volumeSize / 2) * scale;
+            }
+        }
+
+        function onWindowResize() {
+            const container = document.getElementById('canvas3d');
+            const width = container.clientWidth;
+            const height = container.clientHeight;
+            camera.aspect = width / height;
+            camera.updateProjectionMatrix();
+            renderer.setSize(width, height);
+        }
+
+        let lastTime = 0;
+        let frameCount = 0;
+        let fps = 0;
+
+        function animate(currentTime) {
+            requestAnimationFrame(animate);
+
+            frameCount++;
+            if (currentTime - lastTime >= 1000) {
+                fps = frameCount;
+                frameCount = 0;
+                lastTime = currentTime;
+                document.getElementById('fpsCounter').textContent = `FPS: ${fps}`;
+            }
+
+            if (autoRotate && volumeMesh) {
+                volumeMesh.rotation.y += 0.005;
+                slicePlanes.forEach(plane => plane.rotation.y += 0.005);
+            }
+
+            controls.update();
+            renderer.render(scene, camera);
+        }
+
+        function renderSlice(axis, sliceIndex) {
+            const canvas = document.getElementById(`${axis}Canvas`);
+            const ctx = canvas.getContext('2d');
+            const imageData = ctx.createImageData(volumeSize, volumeSize);
+
+            const { center, width } = windowSettings;
+            const minVal = center - width / 2;
+            const maxVal = center + width / 2;
+
+            for (let i = 0; i < volumeSize; i++) {
+                for (let j = 0; j < volumeSize; j++) {
+                    let idx;
+                    switch (axis) {
+                        case 'axial':
+                            idx = sliceIndex * volumeSize * volumeSize + i * volumeSize + j;
+                            break;
+                        case 'coronal':
+                            idx = i * volumeSize * volumeSize + sliceIndex * volumeSize + j;
+                            break;
+                        case 'sagittal':
+                            idx = i * volumeSize * volumeSize + j * volumeSize + sliceIndex;
+                            break;
+                    }
+
+                    const value = volumeData[idx];
+                    let normalized = (value - minVal) / (maxVal - minVal);
+                    normalized = Math.max(0, Math.min(1, normalized));
+
+                    const color = getColorFromTF(normalized);
+                    const pixelIdx = (i * volumeSize + j) * 4;
+                    imageData.data[pixelIdx] = color.r;
+                    imageData.data[pixelIdx + 1] = color.g;
+                    imageData.data[pixelIdx + 2] = color.b;
+                    imageData.data[pixelIdx + 3] = 255;
+                }
+            }
+
+            ctx.putImageData(imageData, 0, 0);
+        }
+
+        function renderAllSlices() {
+            renderSlice('axial', slicePositions.axial);
+            renderSlice('coronal', slicePositions.coronal);
+            renderSlice('sagittal', slicePositions.sagittal);
+        }
+
+        function drawTransferFunction() {
+            const canvas = document.getElementById('tfCanvas');
+            const ctx = canvas.getContext('2d');
+            const width = canvas.width;
+            const height = canvas.height;
+
+            ctx.fillStyle = '#000';
+            ctx.fillRect(0, 0, width, height);
+
+            const gradient = ctx.createLinearGradient(0, 0, width, 0);
+            currentTF.forEach(point => {
+                gradient.addColorStop(point.pos, `rgba(${point.r}, ${point.g}, ${point.b}, 1)`);
+            });
+
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, width, 20);
+
+            ctx.beginPath();
+            ctx.strokeStyle = '#4a9eff';
+            ctx.lineWidth = 2;
+
+            currentTF.forEach((point, i) => {
+                const x = point.pos * width;
+                const y = height - 20 - point.a * (height - 25);
+                if (i === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+            });
+            ctx.stroke();
+
+            currentTF.forEach(point => {
+                const x = point.pos * width;
+                const y = height - 20 - point.a * (height - 25);
+                ctx.beginPath();
+                ctx.arc(x, y, 4, 0, Math.PI * 2);
+                ctx.fillStyle = '#4a9eff';
+                ctx.fill();
+            });
+        }
+
+        // Global functions for UI
+        window.updateSlice = function(axis, value) {
+            value = parseInt(value);
+            slicePositions[axis] = value;
+            document.getElementById(`${axis}Value`).textContent = value;
+            document.getElementById(`${axis}SliceNum`).textContent = `Slice: ${value}/${volumeSize}`;
+            renderSlice(axis, value);
+            updateSlicePlanes();
+            updateStatusBar();
+            updateLayerInfo(slicePositions.axial);
+        };
+
+        window.updateWindow = function() {
+            windowSettings.center = parseInt(document.getElementById('windowCenter').value);
+            windowSettings.width = parseInt(document.getElementById('windowWidth').value);
+            document.getElementById('windowCenterValue').textContent = windowSettings.center;
+            document.getElementById('windowWidthValue').textContent = windowSettings.width;
+            renderAllSlices();
+        };
+
+        window.setWindowPreset = function(preset) {
+            document.querySelectorAll('[data-preset]').forEach(btn => btn.classList.remove('active'));
+            document.querySelector(`[data-preset="${preset}"]`).classList.add('active');
+            const settings = windowPresets[preset];
+            windowSettings = { ...settings };
+            document.getElementById('windowCenter').value = settings.center;
+            document.getElementById('windowWidth').value = settings.width;
+            document.getElementById('windowCenterValue').textContent = settings.center;
+            document.getElementById('windowWidthValue').textContent = settings.width;
+            renderAllSlices();
+        };
+
+        window.setRenderMode = function(mode) {
+            renderMode = mode;
+            document.querySelectorAll('[data-mode]').forEach(btn => btn.classList.remove('active'));
+            document.querySelector(`[data-mode="${mode}"]`).classList.add('active');
+            if (volumeMesh) volumeMesh.visible = (mode !== 'slice');
+        };
+
+        window.setTransferFunction = function(preset) {
+            currentTF = tfPresets[preset];
+            drawTransferFunction();
+            renderAllSlices();
+            createVolumeVisualization();
+        };
+
+        window.resetView = function() {
+            camera.position.set(3, 3, 3);
+            camera.lookAt(0, 0, 0);
+            controls.reset();
+            if (volumeMesh) volumeMesh.rotation.set(0, 0, 0);
+            slicePlanes.forEach(plane => plane.rotation.y = 0);
+            createSlicePlanes();
+            slicePositions = { axial: 64, coronal: 64, sagittal: 64 };
+            document.getElementById('axialSlider').value = 64;
+            document.getElementById('coronalSlider').value = 64;
+            document.getElementById('sagittalSlider').value = 64;
+            window.updateSlice('axial', 64);
+            window.updateSlice('coronal', 64);
+            window.updateSlice('sagittal', 64);
+        };
+
+        window.takeScreenshot = function() {
+            renderer.render(scene, camera);
+            const dataURL = renderer.domElement.toDataURL('image/png');
+            const link = document.createElement('a');
+            link.download = 'neural_tomography_screenshot.png';
+            link.href = dataURL;
+            link.click();
+        };
+
+        window.toggleAutoRotate = function() {
+            autoRotate = !autoRotate;
+            document.getElementById('autoRotateBtn').classList.toggle('active', autoRotate);
+        };
+
+        window.toggleSlicePlanes = function() {
+            const visible = document.getElementById('showSlicePlanes').checked;
+            slicePlanes.forEach(plane => plane.visible = visible);
+        };
+
+        window.toggleAxes = function() {
+            axesHelper.visible = document.getElementById('showAxes').checked;
+        };
+
+        window.update3DOpacity = function() {
+            const opacity = parseInt(document.getElementById('opacity3d').value) / 100;
+            document.getElementById('opacityValue').textContent = `${Math.round(opacity * 100)}%`;
+            if (volumeMesh) volumeMesh.material.opacity = opacity;
+        };
+
+        function updateStatusBar() {
+            document.getElementById('positionStatus').textContent = 
+                `X=${slicePositions.sagittal}, Y=${slicePositions.coronal}, Z=${slicePositions.axial}`;
+            const idx = slicePositions.axial * volumeSize * volumeSize + 
+                       slicePositions.coronal * volumeSize + slicePositions.sagittal;
+            const density = volumeData[idx];
+            document.getElementById('densityStatus').textContent = `${density.toFixed(1)} HU`;
+        }
+
+        function updateLayerInfo(zSlice) {
+            const layerProgress = zSlice / volumeSize;
+            let layerName;
+            if (layerProgress < 0.1) {
+                layerName = 'Embedding (wte, wpe)';
+            } else if (layerProgress < 0.9) {
+                const layerNum = Math.floor((layerProgress - 0.1) / 0.8 * 12);
+                const inLayerProgress = ((layerProgress - 0.1) % (0.8 / 12)) / (0.8 / 12);
+                layerName = inLayerProgress < 0.5 ? `Layer ${layerNum} (Attention)` : `Layer ${layerNum} (MLP)`;
+            } else {
+                layerName = 'Output (ln_f)';
+            }
+            document.getElementById('layerStatus').textContent = layerName;
+        }
+
+        function setupEventListeners() {
+            ['axial', 'coronal', 'sagittal'].forEach(axis => {
+                const container = document.getElementById(`${axis}Container`);
+                container.addEventListener('wheel', (e) => {
+                    e.preventDefault();
+                    const delta = e.deltaY > 0 ? -1 : 1;
+                    const newValue = Math.max(0, Math.min(volumeSize - 1, slicePositions[axis] + delta));
+                    document.getElementById(`${axis}Slider`).value = newValue;
+                    window.updateSlice(axis, newValue);
+                });
+
+                const canvas = document.getElementById(`${axis}Canvas`);
+                canvas.addEventListener('mousemove', (e) => {
+                    const rect = canvas.getBoundingClientRect();
+                    const scaleX = volumeSize / rect.width;
+                    const scaleY = volumeSize / rect.height;
+                    const x = Math.floor((e.clientX - rect.left) * scaleX);
+                    const y = Math.floor((e.clientY - rect.top) * scaleY);
+
+                    let idx;
+                    switch (axis) {
+                        case 'axial':
+                            idx = slicePositions.axial * volumeSize * volumeSize + y * volumeSize + x;
+                            break;
+                        case 'coronal':
+                            idx = y * volumeSize * volumeSize + slicePositions.coronal * volumeSize + x;
+                            break;
+                        case 'sagittal':
+                            idx = y * volumeSize * volumeSize + x * volumeSize + slicePositions.sagittal;
+                            break;
+                    }
+
+                    if (idx >= 0 && idx < volumeData.length) {
+                        const density = volumeData[idx];
+                        document.getElementById('densityStatus').textContent = `${density.toFixed(1)} HU`;
+                    }
+                });
+            });
+
+            let isDragging = false;
+            let startX, startY, startCenter, startWidth;
+
+            document.addEventListener('mousedown', (e) => {
+                if (e.button === 2) {
+                    isDragging = true;
+                    startX = e.clientX;
+                    startY = e.clientY;
+                    startCenter = windowSettings.center;
+                    startWidth = windowSettings.width;
+                    e.preventDefault();
+                }
+            });
+
+            document.addEventListener('mousemove', (e) => {
+                if (isDragging) {
+                    const dx = e.clientX - startX;
+                    const dy = e.clientY - startY;
+                    windowSettings.width = Math.max(10, Math.min(3000, startWidth + dx * 5));
+                    windowSettings.center = Math.max(-1000, Math.min(2000, startCenter - dy * 5));
+                    document.getElementById('windowCenter').value = windowSettings.center;
+                    document.getElementById('windowWidth').value = windowSettings.width;
+                    document.getElementById('windowCenterValue').textContent = Math.round(windowSettings.center);
+                    document.getElementById('windowWidthValue').textContent = Math.round(windowSettings.width);
+                    renderAllSlices();
+                }
+            });
+
+            document.addEventListener('mouseup', () => isDragging = false);
+            document.addEventListener('contextmenu', (e) => e.preventDefault());
+        }
+
+        // Start
+        init();
+    </script>
+</body>
+</html>
